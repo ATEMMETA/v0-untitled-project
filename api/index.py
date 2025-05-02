@@ -2,7 +2,6 @@ from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
-# Sample data (in a real app, you'd use a database)
 posts = [
     {'id': 1, 'title': 'Getting Started with Flask', 'content': 'Flask is a lightweight WSGI web application framework in Python.'},
     {'id': 2, 'title': 'Deploying to Vercel', 'content': 'Vercel makes it easy to deploy Python applications.'}
@@ -22,3 +21,16 @@ def get_post(post_id):
     if post:
         return jsonify(post)
     return jsonify({"error": "Post not found"}), 404
+
+@app.route('/test_opencv', methods=['POST'])
+def test_opencv():
+    try:
+        import cv2
+        return jsonify({"status": "OpenCV imported successfully"})
+    except ImportError as e:
+        return jsonify({"status": "ImportError", "error": str(e)})
+    except Exception as e:
+        return jsonify({"status": "Error", "error": str(e)})
+
+if __name__ == '__main__':
+    app.run(debug=True)
