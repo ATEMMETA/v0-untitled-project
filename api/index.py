@@ -1,41 +1,36 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
+import cv2  # Import OpenCV
 
 app = Flask(__name__)
 
-posts = [
-    {'id': 1, 'title': 'Getting Started with Flask', 'content': 'Flask is a lightweight WSGI web application framework in Python.'},
-    {'id': 2, 'title': 'Deploying to Vercel', 'content': 'Vercel makes it easy to deploy Python applications.'}
-]
+# ... (other routes) ...
 
-@app.route('/')
-def home():
-    return render_template('index.html', posts=posts)
+@app.route('/api/connect_camera', methods=['POST'])
+def connect_camera():
+    data = request.get_json()
+    if not data or 'ip' not in data or 'username' not in data or 'password' not in data:
+        return jsonify({'error': 'Missing camera details'}), 400
 
-@app.route('/api/posts')
-def get_posts():
-    return jsonify(posts)
+    ip_address = data['ip']
+    username = data['username']
+    password = data['password']
+    wifi_ssid = data.get('wifi_ssid', '')
+    wifi_password = data.get('wifi_password', '')
 
-@app.route('/api/posts/<int:post_id>')
-def get_post(post_id):
-    post = next((p for p in posts if p['id'] == post_id), None)
-    if post:
-        return jsonify(post)
-    return jsonify({"error": "Post not found"}), 404
+    print(f"Attempting to connect to camera at: {ip_address} with user: {username}")
+    print(f"Wi-Fi SSID: {wifi_ssid}, Password: {wifi_password}")
 
-@app.route('/test_opencv', methods=['POST'])
-def test_opencv():
+    rtsp_url = f"rtsp://{username}:{password}@{ip_address}:554/live" # Example RTSP URL format - adjust as needed
+
     try:
-        import cv2
-        return jsonify({"status": "OpenCV imported successfully"})
-    except ImportError as e:
-        return jsonify({"status": "ImportError", "error": str(e)})
+        cap = cv2.VideoCapture(rtsp_url)
+        if cap.isOpened():
+            cap.release()
+            return jsonify({'success': True, 'rtsp_url': rtsp_url, 'message': f'Successfully connected to camera at {ip_address}'}), 200
+        else:
+            return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {rtsp_url}. Check credentials or URL.'}), 400
     except Exception as e:
-        return jsonify({"status": "Error", "error": str(e)})
-
-# Add this new route
-@app.route('/api/hello', methods=['GET'])
-def hello_world():
-    return jsonify({'message': 'Hello from your Flask backend!'})
+        return jsonify({'success': False, 'error': f'Error connecting to camera: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
