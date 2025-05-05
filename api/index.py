@@ -32,5 +32,10 @@ def test_opencv():
     except Exception as e:
         return jsonify({"status": "Error", "error": str(e)})
 
+# Add this new route
+@app.route('/api/hello', methods=['GET'])
+def hello_world():
+    return jsonify({'message': 'Hello from your Flask backend!'})
+
 if __name__ == '__main__':
     app.run(debug=True)
