@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import cv2  # Import OpenCV
+import numpy as np  # Import NumPy for handling frames
 
 app = Flask(__name__)
 
@@ -17,28 +18,51 @@ def connect_camera():
 
     print(f"Attempting to connect to camera at: {ip_address} with user: {username}")
 
-    rtsp_url_no_auth = f"rtsp://{ip_address}:554/live" # Potential RTSP URL without auth
+    rtsp_url_no_auth = f"rtsp://{ip_address}:554/live/ch00_1"
+
+    cap = None
+    success = False
+    error_message = ""
 
     try:
-        cap_no_auth = cv2.VideoCapture(rtsp_url_no_auth)
-        if cap_no_auth.isOpened():
-            cap_no_auth.release()
-            return jsonify({'success': True, 'rtsp_url': rtsp_url_no_auth, 'message': f'Successfully connected to camera at {ip_address} (no authentication)'}), 200
-        else:
-            # If no auth fails, try with provided credentials (if any)
-            if username and password:
-                rtsp_url_with_auth = f"rtsp://{username}:{password}@{ip_address}:554/live" # Example with auth
-                cap_with_auth = cv2.VideoCapture(rtsp_url_with_auth)
-                if cap_with_auth.isOpened():
-                    cap_with_auth.release()
-                    return jsonify({'success': True, 'rtsp_url': rtsp_url_with_auth, 'message': f'Successfully connected to camera at {ip_address} (with authentication)'}), 200
-                else:
-                    return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {ip_address}. Check IP or credentials.'}), 400
+        cap = cv2.VideoCapture(rtsp_url_no_auth)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret and frame is not None and frame.size > 0:
+                success = True
+                message = f'Successfully accessed video stream from {ip_address} (no authentication)'
             else:
-                return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {ip_address}. Ensure camera is on local network or provide credentials.'}), 400
-
+                error_message = f'Failed to read a frame from {ip_address} (no authentication). Check stream or format.'
+        else:
+            if username and password:
+                rtsp_url_with_auth = f"rtsp://{username}:{password}@{ip_address}:554/live/ch00_1"
+                cap_auth = cv2.VideoCapture(rtsp_url_with_auth)
+                if cap_auth.isOpened():
+                    ret_auth, frame_auth = cap_auth.read()
+                    if ret_auth and frame_auth is not None and frame_auth.size > 0:
+                        success = True
+                        message = f'Successfully accessed video stream from {ip_address} (with authentication)'
+                        if cap:
+                            cap.release() # Release the no-auth capture
+                        cap = cap_auth
+                    else:
+                        error_message = f'Failed to read a frame from {ip_address} (with authentication). Check stream or format.'
+                        if cap_auth:
+                            cap_auth.release()
+                else:
+                    error_message = f'Failed to open RTSP stream at {ip_address}. Check IP, path, or credentials.'
+            else:
+                error_message = f'Failed to open RTSP stream at {ip_address}. Ensure camera is on local network and the RTSP path is correct.'
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Error connecting to camera: {str(e)}'}), 500
+        error_message = f'Error connecting to camera: {str(e)}'
+    finally:
+        if cap and success:
+            cap.release()
+
+    if success:
+        return jsonify({'success': True, 'message': message, 'rtsp_url': rtsp_url_no_auth if not username else rtsp_url_with_auth}), 200
+    else:
+        return jsonify({'success': False, 'error': error_message}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
