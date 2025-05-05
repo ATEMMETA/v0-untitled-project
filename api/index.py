@@ -8,27 +8,35 @@ app = Flask(__name__)
 @app.route('/api/connect_camera', methods=['POST'])
 def connect_camera():
     data = request.get_json()
-    if not data or 'ip' not in data or 'username' not in data or 'password' not in data:
-        return jsonify({'error': 'Missing camera details'}), 400
+    if not data or 'ip' not in data:
+        return jsonify({'error': 'Missing camera IP address'}), 400
 
     ip_address = data['ip']
-    username = data['username']
-    password = data['password']
-    wifi_ssid = data.get('wifi_ssid', '')
-    wifi_password = data.get('wifi_password', '')
+    username = data.get('username', '')
+    password = data.get('password', '')
 
     print(f"Attempting to connect to camera at: {ip_address} with user: {username}")
-    print(f"Wi-Fi SSID: {wifi_ssid}, Password: {wifi_password}")
 
-    rtsp_url = f"rtsp://{username}:{password}@{ip_address}:554/live" # Example RTSP URL format - adjust as needed
+    rtsp_url_no_auth = f"rtsp://{ip_address}:554/live" # Potential RTSP URL without auth
 
     try:
-        cap = cv2.VideoCapture(rtsp_url)
-        if cap.isOpened():
-            cap.release()
-            return jsonify({'success': True, 'rtsp_url': rtsp_url, 'message': f'Successfully connected to camera at {ip_address}'}), 200
+        cap_no_auth = cv2.VideoCapture(rtsp_url_no_auth)
+        if cap_no_auth.isOpened():
+            cap_no_auth.release()
+            return jsonify({'success': True, 'rtsp_url': rtsp_url_no_auth, 'message': f'Successfully connected to camera at {ip_address} (no authentication)'}), 200
         else:
-            return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {rtsp_url}. Check credentials or URL.'}), 400
+            # If no auth fails, try with provided credentials (if any)
+            if username and password:
+                rtsp_url_with_auth = f"rtsp://{username}:{password}@{ip_address}:554/live" # Example with auth
+                cap_with_auth = cv2.VideoCapture(rtsp_url_with_auth)
+                if cap_with_auth.isOpened():
+                    cap_with_auth.release()
+                    return jsonify({'success': True, 'rtsp_url': rtsp_url_with_auth, 'message': f'Successfully connected to camera at {ip_address} (with authentication)'}), 200
+                else:
+                    return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {ip_address}. Check IP or credentials.'}), 400
+            else:
+                return jsonify({'success': False, 'error': f'Failed to open RTSP stream at {ip_address}. Ensure camera is on local network or provide credentials.'}), 400
+
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error connecting to camera: {str(e)}'}), 500
 
