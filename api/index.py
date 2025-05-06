@@ -1,14 +1,13 @@
 from flask import Flask, jsonify, request
-import cv2  # Import OpenCV
-import numpy as np  # Import NumPy for handling frames
+import cv2
+import numpy as np
 
 app = Flask(__name__)
-
-# ... (other routes) ...
 
 @app.route('/api/connect_camera', methods=['POST'])
 def connect_camera():
     data = request.get_json()
+    print(f"Received JSON data: {data}")  # Add this line
     if not data or 'ip' not in data:
         return jsonify({'error': 'Missing camera IP address'}), 400
 
