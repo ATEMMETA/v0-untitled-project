@@ -21,7 +21,7 @@ def connect_camera():
 
         print(f"Attempting to connect to camera at: {ip_address} with user: {username}")
 
-        rtsp_url = f"rtsp://{ip_address}:554/live/ch00_1"
+        rtsp_url = f"rtsp://{192.168.100.47}:554/live/ch00_1"
 
         cap = None
         success = False
