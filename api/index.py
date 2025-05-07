@@ -1,9 +1,11 @@
-import json
 from flask import Flask, jsonify, request
+from flask_cors import CORS  # Import CORS
+import json
 import cv2
 import numpy as np
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes and origins (for now, for testing)
 
 @app.route('/api/connect_camera', methods=['POST'])
 def connect_camera():
@@ -12,6 +14,7 @@ def connect_camera():
         print(f"Raw request data: {request_data}")
         data = json.loads(request_data)
         print(f"Parsed JSON data: {data}")
+
         if not data or 'ip' not in data:
             return jsonify({'error': 'Missing camera IP address'}), 400
 
