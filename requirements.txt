@@ -1,4 +1,5 @@
 flask==3.0.3
 opencv-python-headless==4.10.0.82
-numpy==1.26.4  # Or the latest stable version
+numpy==1.26.4
 Flask-Cors==3.0.10
+gunicorn==22.0.0
