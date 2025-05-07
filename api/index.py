@@ -1,7 +1,9 @@
-import cv2
 from flask import Flask, jsonify
+from flask_cors import CORS  # Import CORS
+import cv2
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes and origins (for testing)
 
 @app.route('/api/test_opencv')
 def test_opencv():
